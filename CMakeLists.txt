@@ -276,6 +276,39 @@ elseif(ament_cmake_FOUND)
     ${library_name}
   )
 
+  ## Vehicle State Fusion executable
+  set(fusion_executable_name vehicle_state_fusion_node)
+  add_executable(${fusion_executable_name}
+    src/septentrio_gnss_driver/node/vehicle_state_fusion_node.cpp
+  )
+  target_include_directories(${fusion_executable_name} PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"  
+    "$<INSTALL_INTERFACE:include>"
+  )
+  target_link_libraries(${fusion_executable_name}
+    rclcpp::rclcpp
+    ${nav_msgs_TARGETS}
+    ${geometry_msgs_TARGETS}
+    ${diagnostic_msgs_TARGETS}
+    tf2::tf2
+    tf2_geometry_msgs::tf2_geometry_msgs
+    ${GeographicLib_LIBRARIES}
+  )
+  # nlohmann_json is typically available in ROS 2 Humble or via system headers
+  find_package(nlohmann_json QUIET)
+  if(nlohmann_json_FOUND)
+    target_link_libraries(${fusion_executable_name} nlohmann_json::nlohmann_json)
+  endif()
+  
+  if(${rosidl_cmake_VERSION} VERSION_LESS 2.5.0)
+    rosidl_target_interfaces(${fusion_executable_name}
+    ${PROJECT_NAME} "rosidl_typesupport_cpp")
+  else()
+    rosidl_get_typesupport_target(
+    cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+    target_link_libraries(${fusion_executable_name} "${cpp_typesupport_target}")
+  endif()
+
   rclcpp_components_register_nodes(${library_name} "rosaic_node::ROSaicNode")
 
   # Testing
@@ -295,6 +328,10 @@ elseif(ament_cmake_FOUND)
   )
 
   install(TARGETS ${executable_name} EXPORT ${executable_name}
+    DESTINATION lib/${PROJECT_NAME}
+  )
+
+  install(TARGETS ${fusion_executable_name} EXPORT ${fusion_executable_name}
     DESTINATION lib/${PROJECT_NAME}
   )
 

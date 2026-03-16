@@ -1,0 +1,33 @@
+# Sensor Fusion Configuration
+
+vehicle_state_fusion:
+  ros__parameters:
+    # Frame IDs
+    frame_id: "odom"
+    child_frame_id: "base_link"
+    
+    # Use INS velocities (true) or compute from position (false)
+    use_ins_velocities: true
+    
+    # Path to scenarios JSON file (relative to package share or absolute)
+    scenarios_json_path: "/ros2_ws/src/localization/septentrio_gnss_driver/config/Tracks_main_info.json"
+    
+    # Selected scenario (must match a key in the JSON file)
+    # Options: "MotorLand", "Torremocha", "TeruelPoligono", "Aeropuerto", "SendaViva", "SendaViva_Parking"
+    selected_scenario: "TeruelPoligono"
+    
+    # Manual origin override (used if scenarios_json_path is empty or scenario not found)
+    # Set these values if you want to bypass JSON loading
+    manual_origin:
+      enabled: false
+      latitude: 40.6011596614269    # degrees
+      longitude: -1.2670545801838535  # degrees
+      altitude: 1003.12189          # meters
+    
+    # IMU calibration offsets: mounting biases measured on flat ground
+    # These offsets are subtracted from INS pitch/roll before gravity compensation
+    # To calibrate: measure pitch/roll on known flat ground and set as offsets
+    imu_calibration:
+      pitch_offset: -0.085  # radians (example: -0.09 rad ≈ -5.15°)
+      roll_offset: 0.005   # radians
+

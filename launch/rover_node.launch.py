@@ -53,6 +53,32 @@ def generate_launch_description():
             name='septentrio_gnss_driver',
             emulate_tty=True,
             sigterm_timeout = '20',
-            parameters=[LaunchConfiguration(name_arg_file_path)])
+            parameters=[LaunchConfiguration(name_arg_file_path)],
+            remappings=[
+                ('navsatfix', '/septentrio/navsatfix'),
+                ('gpsfix', '/septentrio/gpsfix'),
+                ('pvtgeodetic', '/septentrio/pvtgeodetic'),
+                ('poscovgeodetic', '/septentrio/poscovgeodetic'),
+                ('velcovgeodetic', '/septentrio/velcovgeodetic'),
+                ('insnavgeod', '/septentrio/insnavgeod'),
+                ('imu', '/septentrio/imu'),
+                ('pose', '/septentrio/pose'),
+                ('twist', '/septentrio/twist'),
+                ('twist_gnss', '/septentrio/twist_gnss'),
+                ('twist_ins', '/septentrio/twist_ins'),
+                ('diagnostics', '/septentrio/diagnostics'),
+                ('aimplusstatus', '/septentrio/aimplusstatus'),
+                ('localization', '/septentrio/localization'),
+                ('atteuler', '/septentrio/atteuler'),
+                ('attcoveuler', '/septentrio/attcoveuler'),
+                ('extsensormeas', '/septentrio/extsensormeas'),
+            ])
 
-    return launch.LaunchDescription([arg_file_name, arg_file_path, node, tf_imu, tf_gnss, tf_vsm, tf_aux1])
+    fusion_node = Node(
+            package='septentrio_gnss_driver',
+            executable='vehicle_state_fusion_node',
+            name='vehicle_state_fusion',
+            output='screen',
+            parameters=[os.path.join(get_package_share_directory('septentrio_gnss_driver'), 'config', 'sens_fusion.yaml')])
+
+    return launch.LaunchDescription([arg_file_name, arg_file_path, node, fusion_node, tf_imu, tf_gnss, tf_vsm, tf_aux1])

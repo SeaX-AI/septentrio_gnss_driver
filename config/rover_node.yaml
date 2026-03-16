@@ -3,7 +3,7 @@
 # GNSS/INS Parameters
 septentrio_gnss_driver:
   ros__parameters:
-    device: tcp://192.168.3.1:28784
+    device: tcp://192.168.137.2:28784
 
     serial:
       baudrate: 921600
@@ -18,9 +18,11 @@ septentrio_gnss_driver:
         port: 0
         unicast_ip: ""
 
-    configure_rx: true
-
     custom_commands_file: ""  
+
+    login:
+      user: "ntdd"
+      password: "1234"
 
     osnma:
       mode: "off"
@@ -47,11 +49,19 @@ septentrio_gnss_driver:
 
     lock_utm_zone: true
 
-    use_ros_axis_orientation: true
 
-    receiver_type: gnss    
 
-    multi_antenna: true
+    # IMPORTANTES
+    use_ros_axis_orientation: false # si se pone a true, se asume que el eje y hacia la izquierda y el eje z hacia arriba. 
+    receiver_type: ins    
+    configure_rx: false
+    multi_antenna: false
+    polling_period:
+      pvt: 10
+      rest: 10
+
+
+
 
     datum: Default
 
@@ -69,13 +79,9 @@ septentrio_gnss_driver:
     ant_aux1_type: "Unknown"
     ant_aux1_serial_nr: "Unknown"
 
-    polling_period:
-      pvt: 100
-      rest: 500
-
     # time
     use_gnss_time: false
-    ntp_server: true
+    ntp_server: false
     ptp_server_clock: false
     latency_compensation: true
 
@@ -111,7 +117,7 @@ septentrio_gnss_driver:
       # For both GNSS and INS Rxs
       auto_publish: false
       publish_only_valid: false
-      navsatfix: false
+      navsatfix: true
       gpsfix: true
       gpgga: false
       gprmc: false
@@ -125,27 +131,27 @@ septentrio_gnss_driver:
       poscovgeodetic: true
       velcovcartesian: false
       velcovgeodetic: true
-      atteuler: true
-      attcoveuler: true
-      pose: false
-      twist: false
-      diagnostics: false
+      atteuler: false
+      attcoveuler: false
+      pose: true
+      twist: true
+      diagnostics: true
       aimplusstatus: true
       galauthstatus: false
       # For GNSS Rx only
       gpgsa: false
       gpgsv: false
       # For INS Rx only
-      insnavcart: false
-      insnavgeod: false
-      extsensormeas: false
+      insnavcart: true
+      insnavgeod: true
+      extsensormeas: true
       imusetup: false
       velsensorsetup: false
       exteventinsnavcart: false
       exteventinsnavgeod: false
-      imu: false
-      localization: false
-      tf: false
+      imu: true
+      localization: true
+      tf: true
       
     # INS-Specific Parameters
 
@@ -167,13 +173,13 @@ septentrio_gnss_driver:
         vsm_y: 0.0
         vsm_z: 0.0
 
-    ins_initial_heading: auto
+    ins_initial_heading: stored
 
     ins_std_dev_mask:
       att_std_dev: 5.0
       pos_std_dev: 10.0
 
-    ins_use_poi: false
+    ins_use_poi: true
 
     ins_vsm:
       ros:
