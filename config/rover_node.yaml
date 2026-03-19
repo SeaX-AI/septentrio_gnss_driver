@@ -30,36 +30,27 @@ septentrio_gnss_driver:
       keep_open: true
 
     frame_id: gnss
-
     imu_frame_id: imu
-
     poi_frame_id: base_link
-
     vsm_frame_id: vsm
-
     aux1_frame_id: aux1
-
     vehicle_frame_id: base_link
-
     local_frame_id: odom
-
     insert_local_frame: false
-
     get_spatial_config_from_tf: false
-
     lock_utm_zone: true
 
 
 
     # IMPORTANTES
-    use_ros_axis_orientation: false # si se pone a true, se asume que el eje y hacia la izquierda y el eje z hacia arriba. 
+    use_ros_axis_orientation: false # si se pone a true -> ENU, se asume que el eje "y" hacia la izquierda y el eje "z" hacia arriba. 
     receiver_type: ins    
-    configure_rx: false
-    multi_antenna: false
+    configure_rx: false # si se pone a true, se configuran desde aqui, si no desde lo guardado en la web GUI del receptor
+    multi_antenna: false # solo una antena
+    ins_initial_heading: stored # en stored el heading inicial es el ultimo guardado
     polling_period:
       pvt: 10
-      rest: 10
-
+      rest: 10 #ins y el resto
 
 
 
@@ -172,8 +163,6 @@ septentrio_gnss_driver:
         vsm_x: 0.0
         vsm_y: 0.0
         vsm_z: 0.0
-
-    ins_initial_heading: stored
 
     ins_std_dev_mask:
       att_std_dev: 5.0

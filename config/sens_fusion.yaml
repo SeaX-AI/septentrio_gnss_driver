@@ -9,13 +9,6 @@ vehicle_state_fusion:
     # Use INS velocities (true) or compute from position (false)
     use_ins_velocities: true
     
-    # Path to scenarios JSON file (relative to package share or absolute)
-    scenarios_json_path: "/ros2_ws/src/localization/septentrio_gnss_driver/config/Tracks_main_info.json"
-    
-    # Selected scenario (must match a key in the JSON file)
-    # Options: "MotorLand", "Torremocha", "TeruelPoligono", "Aeropuerto", "SendaViva", "SendaViva_Parking"
-    selected_scenario: "TeruelPoligono"
-    
     # Manual origin override (used if scenarios_json_path is empty or scenario not found)
     # Set these values if you want to bypass JSON loading
     manual_origin:
@@ -28,6 +21,6 @@ vehicle_state_fusion:
     # These offsets are subtracted from INS pitch/roll before gravity compensation
     # To calibrate: measure pitch/roll on known flat ground and set as offsets
     imu_calibration:
-      pitch_offset: -0.085  # radians (example: -0.09 rad ≈ -5.15°)
+      pitch_offset: -0.093  # radians (example: -0.09 rad ≈ -5.15°)
       roll_offset: 0.005   # radians
 

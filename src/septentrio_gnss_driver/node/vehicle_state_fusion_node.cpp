@@ -103,7 +103,7 @@ VehicleStateFusionNode::VehicleStateFusionNode()
     
     // Create publisherss
     vehicle_state_pub_ = this->create_publisher<nav_msgs::msg::Odometry>(
-        "/SensFusion_vehicle_states_new", 10);
+        "/SensFusion_vehicle_states", 10);
     
     diagnostics_pub_ = this->create_publisher<diagnostic_msgs::msg::DiagnosticArray>(
         "/diagnostics", 10);
@@ -215,15 +215,19 @@ void VehicleStateFusionNode::publishVehicleState()
     odom.header.frame_id = frame_id_;
     odom.child_frame_id = child_frame_id_;
     
-    // Position: Convert geodetic to local ENU coordinates (accurate version)
-    std::array<double, 3> enu = lla2enu(latest_ins_->latitude, 
+
+
+    // Position: Convert geodetic to local NED coordinates (accurate version)
+    std::array<double, 3> ned = lla2ned(latest_ins_->latitude, 
                                         latest_ins_->longitude, 
                                         latest_ins_->height);
     
-    odom.pose.pose.position.x = enu[1];  // North
-    odom.pose.pose.position.y = enu[0];  // East
-    odom.pose.pose.position.z = enu[2];  // Up
+    odom.pose.pose.position.x = ned[0];  // North
+    odom.pose.pose.position.y = ned[1];  // East
+    odom.pose.pose.position.z = ned[2];  // Down
     
+
+
     // Orientation: Use quaternion from /septentrio/localization if available, else convert from heading/pitch/roll
     // NOTE: With use_ros_axis_orientation=false, heading is in NAUTICAL convention (North=0°, CW)
     double heading_rad;  // Heading in nautical convention (North=0°, clockwise)
@@ -268,6 +272,9 @@ void VehicleStateFusionNode::publishVehicleState()
         odom.pose.covariance[14] = latest_ins_->height_std_dev * latest_ins_->height_std_dev;
     }
     
+
+
+
     // Velocity: Transform from NED to vehicle body frame
     // ve = velocity East, vn = velocity North, vu = velocity Up
     // heading is in nautical convention (North=0°, CW) with use_ros_axis_orientation=false
@@ -311,7 +318,6 @@ void VehicleStateFusionNode::publishVehicleState()
                     filtered_ay_vel = alpha * ay_raw + (1.0 - alpha) * filtered_ay_vel;
                 }
             }
-            
             ax_body = filtered_ax_vel;
             ay_body = filtered_ay_vel;
         }
@@ -335,7 +341,7 @@ void VehicleStateFusionNode::publishVehicleState()
         // IMU is mounted rotated 90° - experimentally verified axis mapping:
         // Vehicle Forward (ax) = -IMU_Y
         // Vehicle Lateral (ay) = IMU_X  
-        // Vehicle Up (az) = IMU_Z (assuming FRD, negate for FLU)
+        // Vehicle Up (az)      = -IMU_Z (assuming FRD, negate for FLU)
         ax_imu_raw = -latest_imu_->acceleration_y;  // Forward = -IMU_Y
         ay_imu_raw =  latest_imu_->acceleration_x;  // Lateral = IMU_X
         az_imu_raw = -latest_imu_->acceleration_z;  // Up (FRD→FLU)
@@ -363,7 +369,7 @@ void VehicleStateFusionNode::publishVehicleState()
             filter_imu_init = true;
         } else {
             // Outlier detection: reject unrealistic accelerations
-            const double max_accel = 10.0;  // m/s²
+            const double max_accel = 5.0;  // m/s²
             if (std::abs(ax_imu_compensated) < max_accel && std::abs(ay_imu_compensated) < max_accel) {
                 filtered_ax_imu = alpha_imu * ax_imu_compensated + (1.0 - alpha_imu) * filtered_ax_imu;
                 filtered_ay_imu = alpha_imu * ay_imu_compensated + (1.0 - alpha_imu) * filtered_ay_imu;
@@ -388,13 +394,13 @@ void VehicleStateFusionNode::publishVehicleState()
         odom.twist.twist.angular.z = -yaw_rate_rad;
     }
     
-    // PRIMARY: Store velocity-derived accelerations in angular.x and angular.y (for control)
-    odom.twist.twist.angular.x = ax_body;  // Longitudinal acceleration (from velocity)
-    odom.twist.twist.angular.y = ay_body;  // Lateral acceleration (from velocity)
+    // PRIMARY: Store IMU accelerations in angular.x and angular.y (for control)
+    odom.twist.twist.angular.x = ax_imu_rotated;  // Longitudinal acceleration (from IMU)
+    odom.twist.twist.angular.y = ay_imu_rotated;  // Lateral acceleration (from IMU)
     
-    // ADDITIONAL: Store IMU accelerations in covariance for comparison
-    odom.pose.covariance[1] = ax_imu_rotated;  // IMU rotated longitudinal (gravity compensated)
-    odom.pose.covariance[2] = ay_imu_rotated;  // IMU rotated lateral (gravity compensated)
+    // ADDITIONAL: Store velocity-derived accelerations in covariance for comparison
+    odom.pose.covariance[1] = ax_body;  // Velocity-derived longitudinal (for comparison)
+    odom.pose.covariance[2] = ay_body;  // Velocity-derived lateral (for comparison)
     odom.pose.covariance[3] = ax_imu_raw;      // IMU raw longitudinal (for debugging)
     odom.pose.covariance[4] = ay_imu_raw;      // IMU raw lateral (for debugging)
     
@@ -415,7 +421,7 @@ void VehicleStateFusionNode::publishVehicleState()
     
     RCLCPP_DEBUG(this->get_logger(), 
                 "Vehicle state: x=%.2f, y=%.2f, yaw=%.2f rad, vx=%.2f, vy=%.2f m/s", 
-                enu[0], enu[1], heading_rad, vx_body, vy_body);
+                ned[0], ned[1], heading_rad, vx_body, vy_body);
 }
 
 bool VehicleStateFusionNode::loadOriginFromJSON(const std::string& json_path, const std::string& scenario)
@@ -467,11 +473,11 @@ bool VehicleStateFusionNode::loadOriginFromJSON(const std::string& json_path, co
     }
 }
 
-std::array<double, 3> VehicleStateFusionNode::lla2enu(double lat, double lon, double alt)
+std::array<double, 3> VehicleStateFusionNode::lla2ned(double lat, double lon, double alt)
 {
-    // Convert Lat, Lon, Altitude to East-North-Up (ENU) coordinate system
+    // Convert Lat, Lon, Altitude to North-East-Down (NED) coordinate system
     // Input: lat, lon (radians), alt (meters)
-    // Output: [east, north, up] in meters
+    // Output: [north, east, down] in meters
     // This is the accurate version considering ellipsoid curvature
     
     // WGS84 ellipsoid parameters
@@ -489,26 +495,26 @@ std::array<double, 3> VehicleStateFusionNode::lla2enu(double lat, double lon, do
     double cos_lat0 = std::cos(origin_lat_);
     double tmp1 = std::sqrt(1.0 - e2 * sin_lat0 * sin_lat0);
     
-    std::array<double, 3> enu;
+    std::array<double, 3> ned;
     
     // Accurate transformations accounting for ellipsoid curvature
-    // East component
-    enu[0] = (a / tmp1 + origin_alt_) * cos_lat0 * dlon 
-           - (a * (1.0 - e2) / std::pow(tmp1, 3) + origin_alt_) * sin_lat0 * dlat * dlon 
-           + cos_lat0 * dlon * dalt;
-    
     // North component
-    enu[1] = (a * (1.0 - e2) / std::pow(tmp1, 3) + origin_alt_) * dlat 
+    ned[0] = (a * (1.0 - e2) / std::pow(tmp1, 3) + origin_alt_) * dlat 
            + 1.5 * cos_lat0 * sin_lat0 * a * e2 * dlat * dlat 
            + sin_lat0 * sin_lat0 * dalt * dlat 
            + 0.5 * sin_lat0 * cos_lat0 * (a / tmp1 + origin_alt_) * dlon * dlon;
     
-    // Up component
-    enu[2] = dalt 
-           - 0.5 * (a - 1.5 * a * e2 * cos_lat0 * cos_lat0 + 0.5 * a * e2 + origin_alt_) * dlat * dlat 
-           - 0.5 * cos_lat0 * cos_lat0 * (a / tmp1 - origin_alt_) * dlon * dlon;
+    // East component
+    ned[1] = (a / tmp1 + origin_alt_) * cos_lat0 * dlon 
+           - (a * (1.0 - e2) / std::pow(tmp1, 3) + origin_alt_) * sin_lat0 * dlat * dlon 
+           + cos_lat0 * dlon * dalt;
     
-    return enu;
+    // Down component (negative of up)
+    ned[2] = -(dalt 
+           - 0.5 * (a - 1.5 * a * e2 * cos_lat0 * cos_lat0 + 0.5 * a * e2 + origin_alt_) * dlat * dlat 
+           - 0.5 * cos_lat0 * cos_lat0 * (a / tmp1 - origin_alt_) * dlon * dlon);
+    
+    return ned;
 }
 
 void VehicleStateFusionNode::transformVelocitiesToBodyFrame(double ve, double vn, double yaw, 

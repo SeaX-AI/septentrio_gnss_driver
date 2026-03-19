@@ -74,8 +74,8 @@ private:
     // Load origin from JSON file based on selected scenario
     bool loadOriginFromJSON(const std::string& json_path, const std::string& scenario);
     
-    // Convert lat/lon to local ENU coordinates (accurate version with ellipsoid)
-    std::array<double, 3> lla2enu(double lat, double lon, double alt);
+    // Convert lat/lon to local NED coordinates (accurate version with ellipsoid)
+    std::array<double, 3> lla2ned(double lat, double lon, double alt);
     
     // Convert heading/pitch/roll to quaternion
     geometry_msgs::msg::Quaternion eulerToQuaternion(double heading, double pitch, double roll);
