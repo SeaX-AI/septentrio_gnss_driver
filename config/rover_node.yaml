@@ -142,7 +142,7 @@ septentrio_gnss_driver:
       exteventinsnavgeod: false
       imu: true
       localization: true
-      tf: true
+      tf: false
       
     # INS-Specific Parameters
 

@@ -137,7 +137,7 @@ publish:
   exteventinsnavgeod: false
   imu: true
   localization: true
-  tf: true
+  tf: false
   localization_ecef: false
   tf_ecef: false
 
